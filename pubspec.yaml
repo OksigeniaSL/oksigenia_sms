@@ -4,7 +4,6 @@ description: >-
   SMS without READ_PHONE_STATE — works on Android 12–17 and GrapheneOS, where
   SmsManager.divideMessage now demands that permission.
 version: 0.1.0
-publish_to: none
 repository: https://github.com/OksigeniaSL/oksigenia_sms
 homepage: https://github.com/OksigeniaSL/oksigenia_sms
 issue_tracker: https://github.com/OksigeniaSL/oksigenia_sms/issues
