@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Trim the pubspec description to pub.dev's 60–180 character range.
+- Add an `example/` and document the library and result constructor.
+- No API or behaviour changes (pub.dev quality/score only).
+
 ## 0.1.0
 
 - Initial release. Sends a long message as a single concatenated Android SMS

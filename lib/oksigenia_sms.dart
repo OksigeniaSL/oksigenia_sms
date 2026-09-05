@@ -1,6 +1,12 @@
 // Copyright 2026 Oksigenia SL
 // SPDX-License-Identifier: Apache-2.0
 
+/// A permission-minimal Android SMS sender for Flutter.
+///
+/// Sends a long message as a single concatenated Android SMS using only the
+/// `SEND_SMS` permission — never `READ_PHONE_STATE`. See [OksigeniaSms.send].
+library;
+
 import 'dart:async';
 
 import 'package:flutter/services.dart';
@@ -28,6 +34,7 @@ class OksigeniaSmsResult {
   /// Human-readable code of the first failing part, if any (e.g. `no_service`).
   final String? error;
 
+  /// Creates a result with the aggregated [status] and per-part counts.
   const OksigeniaSmsResult({
     required this.status,
     required this.parts,

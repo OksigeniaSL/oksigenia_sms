@@ -1,9 +1,8 @@
 name: oksigenia_sms
 description: >-
-  Permission-minimal Android SMS sender. Sends a single, concatenated multipart
-  SMS without READ_PHONE_STATE — works on Android 12–17 and GrapheneOS, where
-  SmsManager.divideMessage now demands that permission.
-version: 0.1.0
+  Permission-minimal Android SMS sender: sends one concatenated SMS using only
+  SEND_SMS, no READ_PHONE_STATE. Works on Android 12-17 and GrapheneOS.
+version: 0.1.1
 repository: https://github.com/OksigeniaSL/oksigenia_sms
 homepage: https://github.com/OksigeniaSL/oksigenia_sms
 issue_tracker: https://github.com/OksigeniaSL/oksigenia_sms/issues
