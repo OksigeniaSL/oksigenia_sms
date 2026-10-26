@@ -13,6 +13,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -44,10 +45,18 @@ class OksigeniaSmsPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method != "send") {
-            result.notImplemented()
-            return
+        when (call.method) {
+            "send" -> onSend(call, result)
+            "partCount" -> {
+                val message = call.argument<String>("message").orEmpty()
+                result.success(if (message.isEmpty()) 0 else splitParts(message).size)
+            }
+            "rateLimit" -> result.success(rateLimit())
+            else -> result.notImplemented()
         }
+    }
+
+    private fun onSend(call: MethodCall, result: MethodChannel.Result) {
         val to = call.argument<String>("to")
         val message = call.argument<String>("message")
         val timeoutMs = call.argument<Number>("timeoutMs")?.toLong() ?: 20000L
@@ -96,7 +105,33 @@ class OksigeniaSmsPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         SmsManager.RESULT_ERROR_NO_SERVICE -> "no_service"
         SmsManager.RESULT_ERROR_NULL_PDU -> "null_pdu"
         SmsManager.RESULT_ERROR_RADIO_OFF -> "radio_off"
+        // Someone tapped "Deny" on Android's rate-limit confirmation, or too
+        // many messages were already waiting behind it.
+        SmsManager.RESULT_ERROR_LIMIT_EXCEEDED -> "limit_exceeded"
+        SmsManager.RESULT_ERROR_SHORT_CODE_NOT_ALLOWED -> "short_code_not_allowed"
+        SmsManager.RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED -> "short_code_never_allowed"
         else -> "code_$rc"
+    }
+
+    /**
+     * Android's per-app SMS rate limit. Above it, SmsUsageMonitor holds every
+     * further part behind a system "Allow / Deny" dialog with no timeout; only
+     * the default SMS app is exempt. Both keys are @Readable (Android 12+), so
+     * no permission is needed. A null value means unset (Android's default
+     * applies) or unreadable on this ROM.
+     */
+    private fun rateLimit(): HashMap<String, Any?> {
+        val resolver = appContext.contentResolver
+        var readable = true
+        fun read(key: String): Int? = try {
+            Settings.Global.getString(resolver, key)?.trim()?.toIntOrNull()
+        } catch (_: SecurityException) {
+            readable = false
+            null
+        }
+        val maxCount = read(KEY_MAX_COUNT)
+        val intervalMs = read(KEY_INTERVAL_MS)
+        return hashMapOf("maxCount" to maxCount, "intervalMs" to intervalMs, "readable" to readable)
     }
 
     private fun fail(error: String): HashMap<String, Any?> =
@@ -169,5 +204,9 @@ class OksigeniaSmsPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     companion object {
         private const val CHANNEL = "oksigenia_sms"
         private const val SENT_ACTION = "com.oksigenia.oksigenia_sms.SMS_SENT"
+
+        // Settings.Global.SMS_OUTGOING_CHECK_* are @hide, so not in the SDK stubs.
+        private const val KEY_MAX_COUNT = "sms_outgoing_check_max_count"
+        private const val KEY_INTERVAL_MS = "sms_outgoing_check_interval_ms"
     }
 }

@@ -8,12 +8,20 @@ import 'package:oksigenia_sms/oksigenia_sms.dart';
 /// The host app must already hold the runtime `SEND_SMS` permission before
 /// calling this; the package requests no permissions of its own.
 Future<void> sendSos(String contact) async {
-  final result = await OksigeniaSms.send(
-    to: contact,
-    message: 'SOS - I need help.\n'
-        'geo:40.4168,-3.7038\n'
-        'https://maps.google.com/?q=40.4168,-3.7038',
-  );
+  const message = 'SOS - I need help.\n'
+      'geo:40.4168,-3.7038\n'
+      'https://maps.google.com/?q=40.4168,-3.7038';
+
+  // Past Android's SMS rate limit the system holds messages behind an
+  // Allow / Deny dialog with no timeout — check before relying on it.
+  final limit = await OksigeniaSms.rateLimit();
+  final parts = await OksigeniaSms.partCount(message);
+  if (!limit.allows(parts)) {
+    print('Android will ask for confirmation: limit '
+        '${limit.effectiveMaxCount}, this SOS needs $parts part(s).');
+  }
+
+  final result = await OksigeniaSms.send(to: contact, message: message);
 
   switch (result.status) {
     case OksigeniaSmsStatus.sent:

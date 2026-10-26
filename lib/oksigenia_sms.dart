@@ -15,10 +15,57 @@ import 'package:flutter/services.dart';
 ///
 /// - [sent]: every SMS part reported `RESULT_OK` from the radio.
 /// - [failed]: at least one part reported an error code (see [OksigeniaSmsResult.error]).
+///   `limit_exceeded` means someone denied Android's rate-limit confirmation
+///   (see [OksigeniaSmsRateLimit]).
 /// - [unknown]: no delivery result arrived within the timeout. The message was
 ///   handed to the radio and, in practice, usually still goes out — we just
-///   couldn't confirm it via the sent-status callback.
+///   couldn't confirm it via the sent-status callback. The exception: parts
+///   beyond Android's rate limit wait for a confirmation that may never come,
+///   so check [OksigeniaSms.rateLimit] before trusting `unknown` for those.
 enum OksigeniaSmsStatus { sent, failed, unknown }
+
+/// Android's per-app SMS rate limit (`sms_outgoing_check_max_count`).
+///
+/// Once an app has sent this many SMS parts within the check period, Android
+/// holds every further part behind a system "Allow / Deny" dialog with no
+/// timeout. Only the default SMS app is exempt. LineageOS exposes the value in
+/// Trust → SMS message limit, where "Always confirm" stores 0. Android reads
+/// it once, when the phone starts, so a change applies after a restart.
+class OksigeniaSmsRateLimit {
+  /// Android's default when the setting is absent (AOSP `SmsUsageMonitor`).
+  static const int defaultMaxCount = 30;
+
+  /// The configured limit, or null if unset or unreadable on this ROM.
+  final int? maxCount;
+
+  /// The configured check period in milliseconds, or null if unset or
+  /// unreadable.
+  final int? intervalMs;
+
+  /// False if the ROM refused to let the app read the setting.
+  final bool readable;
+
+  /// Creates a rate limit as read from the system settings.
+  const OksigeniaSmsRateLimit({
+    this.maxCount,
+    this.intervalMs,
+    this.readable = true,
+  });
+
+  /// The limit Android applies: [maxCount], or [defaultMaxCount] when unset.
+  int get effectiveMaxCount => maxCount ?? defaultMaxCount;
+
+  /// True when every SMS needs confirmation (LineageOS "Always confirm").
+  bool get alwaysConfirm => effectiveMaxCount <= 0;
+
+  /// True if sending [parts] SMS parts in one burst stays within the limit.
+  bool allows(int parts) => parts <= effectiveMaxCount;
+
+  @override
+  String toString() =>
+      'OksigeniaSmsRateLimit(max=${maxCount ?? 'default $defaultMaxCount'}, '
+      'intervalMs=${intervalMs ?? 'default'}${readable ? '' : ', unreadable'})';
+}
 
 /// Result of [OksigeniaSms.send].
 class OksigeniaSmsResult {
@@ -91,6 +138,22 @@ class OksigeniaSms {
       parts: (m['parts'] as int?) ?? 0,
       okParts: (m['okParts'] as int?) ?? 0,
       error: m['error'] as String?,
+    );
+  }
+
+  /// Number of SMS parts [send] uses for [message] — what Android's rate limit
+  /// charges for each recipient.
+  static Future<int> partCount(String message) async =>
+      await _channel.invokeMethod<int>('partCount', {'message': message}) ?? 0;
+
+  /// Reads Android's per-app SMS rate limit. See [OksigeniaSmsRateLimit].
+  static Future<OksigeniaSmsRateLimit> rateLimit() async {
+    final m = await _channel.invokeMapMethod<String, dynamic>('rateLimit') ??
+        const <String, dynamic>{};
+    return OksigeniaSmsRateLimit(
+      maxCount: m['maxCount'] as int?,
+      intervalMs: m['intervalMs'] as int?,
+      readable: (m['readable'] as bool?) ?? true,
     );
   }
 }

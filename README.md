@@ -77,16 +77,34 @@ if (result.ok) {
 | `status` | Meaning |
 |----------|---------|
 | `sent`   | Every segment reported `RESULT_OK`. `result.ok` is `true`. |
-| `failed` | At least one segment returned an error; see `result.error` (e.g. `no_service`, `radio_off`). |
+| `failed` | At least one segment returned an error; see `result.error` (e.g. `no_service`, `radio_off`, `limit_exceeded`). |
 | `unknown`| No result arrived within the timeout. The message was still submitted to the radio and usually goes out — you just can't confirm it. |
 
 `result.parts` / `result.okParts` tell you how many segments were sent and how many were confirmed.
+
+### SMS rate limit
+
+Android caps how many SMS parts an app may send in a short period (`sms_outgoing_check_max_count`, 30 by default). Past the cap it holds every further part behind a system **Allow / Deny** dialog with **no timeout** — only the default SMS app is exempt. LineageOS exposes the cap in *Trust → SMS message limit*, down to "Always confirm" (0). For an emergency sender that means a message can sit unsent while nobody is there to tap Allow, and `send()` returns `unknown`.
+
+Check it up front:
+
+```dart
+final limit = await OksigeniaSms.rateLimit();
+final parts = await OksigeniaSms.partCount(message);
+final needed = parts * recipients.length;
+if (!limit.allows(needed)) {
+  // Warn the user: raise the limit (and restart the phone — Android reads it
+  // only at startup), or send to fewer recipients / a shorter message.
+}
+```
+
+`partCount()` returns exactly how many parts `send()` will use, which is what the limit charges per recipient. A `failed` result with `limit_exceeded` means someone tapped Deny; re-sending would only queue more messages behind the same dialog.
 
 ## Notes & limitations
 
 - **Android only.** Other platforms are no-ops by design.
 - Sends must be **sequential**, not concurrent (the sent-status receiver is shared). Await each `send()` before the next.
-- `unknown` does **not** mean failure — treat it as "submitted". Re-sending on `unknown` risks duplicate messages.
+- `unknown` does **not** mean failure — treat it as "submitted". Re-sending on `unknown` risks duplicate messages. The exception is parts beyond the rate limit (see above), which wait for a confirmation.
 - This package does not read the inbox, track delivery reports, or persist anything. It sends. That's it.
 
 ## License
