@@ -1,4 +1,4 @@
-// Copyright 2026 Oksigenia SL
+// Copyright 2026 Oksigenia SL <dev@oksigenia.cc>
 // SPDX-License-Identifier: Apache-2.0
 
 /// A permission-minimal Android SMS sender for Flutter.
