@@ -30,7 +30,8 @@ enum OksigeniaSmsStatus { sent, failed, unknown }
 /// holds every further part behind a system "Allow / Deny" dialog with no
 /// timeout. Only the default SMS app is exempt. LineageOS exposes the value in
 /// Trust → SMS message limit, where "Always confirm" stores 0. Android reads
-/// it once, when the phone starts, so a change applies after a restart.
+/// it once when its telephony stack starts, so on many phones (GrapheneOS, for
+/// one) a change only takes effect after a restart; some ROMs apply it at once.
 class OksigeniaSmsRateLimit {
   /// Android's default when the setting is absent (AOSP `SmsUsageMonitor`).
   static const int defaultMaxCount = 30;

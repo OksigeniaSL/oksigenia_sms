@@ -93,8 +93,9 @@ final limit = await OksigeniaSms.rateLimit();
 final parts = await OksigeniaSms.partCount(message);
 final needed = parts * recipients.length;
 if (!limit.allows(needed)) {
-  // Warn the user: raise the limit (and restart the phone — Android reads it
-  // only at startup), or send to fewer recipients / a shorter message.
+  // Warn the user: raise the limit (and restart the phone to be sure — on many
+  // phones it only takes effect after a restart), or send to fewer recipients
+  // or a shorter message.
 }
 ```
 
