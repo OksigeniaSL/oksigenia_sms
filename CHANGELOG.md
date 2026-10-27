@@ -10,7 +10,7 @@
   which is what that limit charges per recipient.
 - Name the rate-limit and short-code result codes (`limit_exceeded`,
   `short_code_not_allowed`, `short_code_never_allowed`) instead of `code_N`.
-- Copyright notices now read Oksigenia SL <dev@oksigenia.cc>.
+- Copyright notices now read Oksigenia SL.
 
 ## 0.1.1
 

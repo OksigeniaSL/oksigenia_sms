@@ -1,4 +1,4 @@
-// Copyright 2026 Oksigenia SL <dev@oksigenia.cc>
+// Copyright 2026 Oksigenia SL
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:oksigenia_sms/oksigenia_sms.dart';
