@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Oksigenia SL
+#
+# Publishes to pub.dev when a version tag is pushed, authenticating with a
+# short-lived GitHub OIDC token (no stored secret). pub.dev must have
+# "Publishing from GitHub Actions" enabled for OksigeniaSL/oksigenia_sms with
+# the tag pattern v{{version}}; the pubspec version must match the tag.
+name: Publish to pub.dev
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+jobs:
+  publish:
+    permissions:
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      use-flutter: true # a Flutter plugin: dart pub alone cannot resolve the flutter SDK
