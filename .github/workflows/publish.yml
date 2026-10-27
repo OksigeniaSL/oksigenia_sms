@@ -5,6 +5,9 @@
 # short-lived GitHub OIDC token (no stored secret). pub.dev must have
 # "Publishing from GitHub Actions" enabled for OksigeniaSL/oksigenia_sms with
 # the tag pattern v{{version}}; the pubspec version must match the tag.
+#
+# A custom workflow rather than dart-lang/setup-dart's reusable one: this is a
+# Flutter plugin, and the released reusable workflow (v1) installs Dart only.
 name: Publish to pub.dev
 
 on:
@@ -13,8 +16,17 @@ on:
 
 jobs:
   publish:
+    runs-on: ubuntu-24.04
     permissions:
-      id-token: write
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
-    with:
-      use-flutter: true # a Flutter plugin: dart pub alone cannot resolve the flutter SDK
+      contents: read
+      id-token: write # pub.dev OIDC token
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1 # also configures the pub.dev OIDC token
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: stable
+      - run: flutter pub get
+      - run: flutter pub publish --dry-run
+      - run: flutter pub publish --force
